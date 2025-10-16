@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SDEC Centralized Dashboard</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Poppins", sans-serif;
+    }
+
+    :root {
+        --primary: #2e7d32;
+        --secondary: #1565c0;
+        --accent: #ff9800;
+        --light: #f5f5f5;
+        --gray: #757575;
+        --dark: #333;
+    }
+
+    body {
+        background-color: #f0f4f0;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+    }
+
+    header {
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        color: white;
+        padding: 1rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    header h1 { 
+        font-size: 1.4rem; 
+        font-weight: 600; 
+    }
+
+    .dashboard-container { 
+        display: flex; 
+        flex: 1; 
+        padding: 1rem; 
+        gap: 1rem; 
+        height: calc(100vh - 120px);
+    }
+
+    /* Sidebar */
+    .sidebar {
+        width: 250px;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        padding: 0.8rem;
+        overflow-y: auto;
+    }
+
+    .sidebar-section { 
+        margin-bottom: 1.2rem; 
+    }
+    
+    .sidebar-title { 
+        font-weight: 600; 
+        color: var(--primary); 
+        margin-bottom: 0.5rem; 
+        font-size: 0.9rem; 
+        display: flex; 
+        align-items: center; 
+        gap: 0.4rem; 
+    }
+    
+    .sidebar-list { 
+        list-style: none; 
+        display: flex; 
+        flex-direction: column; 
+        gap: 0.4rem; 
+    }
+    
+    .sidebar-item { 
+        padding: 0.5rem 0.7rem; 
+        border-radius: 5px; 
+        cursor: pointer; 
+        transition: all 0.3s; 
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.85rem;
+    }
+    
+    .sidebar-item:hover { 
+        background: #e8f5e9; 
+    }
+    
+    .sidebar-item.active { 
+        background: #c8e6c9; 
+        color: var(--primary); 
+        font-weight: 600; 
+    }
+
+    /* Main Content Area */
+    .main-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    /* Map Section */
+    .map-container {
+        flex: 1;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        padding: 0.8rem;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        min-height: 0;
+    }
+
+    .map-header { 
+        font-weight: 600; 
+        font-size: 1.1rem; 
+        color: var(--primary); 
+        margin-bottom: 0.8rem; 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        padding: 0 0.5rem;
+    }
+    
+    .map-controls button { 
+        background: var(--light); 
+        border: none; 
+        padding: 0.4rem 0.8rem; 
+        border-radius: 5px; 
+        cursor: pointer; 
+        transition: 0.3s; 
+        font-size: 0.85rem;
+    }
+    
+    .map-controls button:hover { 
+        background: #ddd; 
+    }
+
+    .map-area { 
+        flex: 1; 
+        position: relative; 
+        text-align: center; 
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background: #f8f9fa;
+        min-height: 0;
+    }
+
+    .map-image {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        border-radius: 6px;
+        max-height: 100%;
+    }
+
+    /* Charts Section - Separate from Map */
+    .charts-container {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        padding: 0.8rem;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .charts-header {
+        font-weight: 600;
+        font-size: 1.1rem;
+        color: var(--primary);
+        margin-bottom: 0.8rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .charts-section {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.8rem;
+		
+        height: auto-height;
+		min-height : 100px;
+    }
+
+    .chart-panel {
+        background: #f8f9fa;
+        border-radius: 6px;
+        padding: 0.8rem;
+        display: flex;
+        flex-direction: column;
+        border: 1px solid #e0e0e0;
+    }
+
+    .chart-title {
+        font-weight: 600;
+        color: var(--primary);
+        font-size: 0.85rem;
+        margin-bottom: 0.5rem;
+        text-align: center;
+    }
+
+    .chart-container {
+        flex: 1;
+        position: relative;
+    }
+
+    /* Map pins */
+    .map-pin {
+        position: absolute;
+        width: 28px;
+        height: 35px;
+        cursor: pointer;
+        transition: all 0.3s;
+        transform-origin: bottom center;
+        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+        z-index: 10;
+    }
+    
+    .map-pin:hover {
+        transform: scale(1.15);
+        z-index: 20;
+    }
+    
+    .map-pin.selected {
+        transform: scale(1.15);
+        filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.8));
+        z-index: 20;
+    }
+    
+    .pin-icon {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 12px;
+    }
+    
+    .pin-label {
+        position: absolute;
+        top: -22px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0,0,0,0.7);
+        color: white;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 11px;
+        white-space: nowrap;
+        opacity: 0;
+        transition: opacity 0.3s;
+        pointer-events: none;
+    }
+    
+    .map-pin:hover .pin-label {
+        opacity: 1;
+    }
+
+    /* Category-specific colors */
+    .farming .pin-icon { color: #2e7d32; }
+    .livestock .pin-icon { color: #9c27b0; }
+    .aquaculture .pin-icon { color: #1565c0; }
+
+    /* Status indicators */
+    .status-online { color: #4caf50; }
+    .status-offline { color: #f44336; }
+
+    /* Pin positions for specific locations */
+    .santubong { top: 75%; left: 23.3%; }
+    .rampangi { top: 75%; left: 27%; }
+    .semenggok-1 { top: 85%; left: 30%; }
+    .semenggok-2 { top: 85%; left: 28%; }
+    .oya { top: 60%; left: 45%; }
+    .sg-baji { top: 70%; left: 40%; }
+    .kabuloh { top: 25%; left: 65%; }
+    .lubok-antusg { top: 80%; left: 40%; }
+    .sg-sebiew { top: 40%; left: 55%; }
+    .cattle-farm { top: 86%; left: 38%; }
+
+    /* Details Panel */
+    .details-panel { 
+        width: 300px; 
+        display: flex; 
+        flex-direction: column; 
+        gap: 1rem; 
+    }
+    
+    .panel { 
+        background: #fff; 
+        border-radius: 8px; 
+        padding: 0.8rem; 
+        box-shadow: 0 2px 6px rgba(0,0,0,0.08); 
+    }
+    
+    .panel-title { 
+        font-weight: 600; 
+        color: var(--primary); 
+        margin-bottom: 0.4rem; 
+        display: flex; 
+        align-items: center; 
+        gap: 0.5rem; 
+        font-size: 0.9rem;
+    }
+    
+    .app-item { 
+        display: flex; 
+        align-items: center; 
+        gap: 0.8rem; 
+        background: #f1f8e9; 
+        padding: 0.6rem; 
+        border-radius: 6px; 
+        margin-bottom: 0.4rem; 
+    }
+    
+    .app-icon { 
+        width: 35px; 
+        height: 35px; 
+        background: var(--primary); 
+        border-radius: 6px; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        color: white; 
+        font-size: 0.9rem;
+    }
+
+    footer { 
+        background: var(--primary); 
+        color: white; 
+        text-align: center; 
+        padding: 0.6rem; 
+        font-size: 0.8rem; 
+        margin-top: auto;
+    }
+
+    @media (max-width: 1200px) {
+        .dashboard-container { flex-direction: column; height: auto; }
+        .sidebar, .details-panel { width: 100%; }
+        .charts-section {
+            grid-template-columns: 1fr;
+            height: auto;
+        }
+    }
+
+    /* Legend */
+    .legend {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 8px;
+        border-radius: 6px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.75rem;
+    }
+    
+    .legend-color {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+    }
+    
+    .farming-color { background: #2e7d32; }
+    .livestock-color { background: #9c27b0; }
+    .aquaculture-color { background: #1565c0; }
+
+    /* IoT Parameters */
+    .iot-params {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.4rem;
+        margin-top: 0.4rem;
+    }
+    
+    .param-item {
+        background: #f5f5f5;
+        padding: 0.4rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+    }
+    
+    .param-value {
+        font-weight: bold;
+        color: var(--primary);
+        font-size: 0.8rem;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.4rem;
+        margin-top: 0.4rem;
+    }
+    
+    .stat-item {
+        background: #e8f5e9;
+        padding: 0.4rem;
+        border-radius: 4px;
+        text-align: center;
+    }
+    
+    .stat-value {
+        font-weight: bold;
+        font-size: 1rem;
+        color: var(--primary);
+    }
+    
+    .stat-label {
+        font-size: 0.65rem;
+        color: var(--gray);
+    }
+
+    /* Compact text styles */
+    #location-details, #iot-status {
+        font-size: 0.85rem;
+        line-height: 1.4;
+    }
+
+    #location-details strong {
+        font-size: 0.9rem;
+    }
+</style>
+</head>
+<body>
+
+<header>
+    <h1>Centralized Dashboard (SDEC Dashboard)</h1>
+    <div style="font-size: 0.9rem;">IoT Monitoring & Data Visualization</div>
+</header>
+
+<div class="dashboard-container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-section">
+            <div class="sidebar-title"><i class="fas fa-list"></i> By Category</div>
+            <ul class="sidebar-list">
+                <li class="sidebar-item active" data-filter="category" data-value="all">
+                    <i class="fas fa-layer-group"></i> All Categories
+                </li>
+                <li class="sidebar-item" data-filter="category" data-value="farming">
+                    <i class="fas fa-seedling"></i> Farming
+                </li>
+                <li class="sidebar-item" data-filter="category" data-value="livestock">
+                    <i class="fas fa-cow"></i> Livestock
+                </li>
+                <li class="sidebar-item" data-filter="category" data-value="aquaculture">
+                    <i class="fas fa-fish"></i> Aquaculture
+                </li>
+            </ul>
+        </div>
+        
+        <div class="sidebar-section">
+            <div class="sidebar-title"><i class="fas fa-building"></i> By Agency/Ownership</div>
+            <ul class="sidebar-list">
+                <li class="sidebar-item active" data-filter="agency" data-value="all">
+                    <i class="fas fa-building"></i> All Agencies
+                </li>
+                <li class="sidebar-item" data-filter="agency" data-value="sdec">
+                    <i class="fas fa-digital-tachograph"></i> SDEC
+                </li>
+                <li class="sidebar-item" data-filter="agency" data-value="doa">
+                    <i class="fas fa-landmark"></i> DoA
+                </li>
+                <li class="sidebar-item" data-filter="agency" data-value="mficord">
+                    <i class="fas fa-hands-helping"></i> MFICORD
+                </li>
+                <li class="sidebar-item" data-filter="agency" data-value="lcda">
+                    <i class="fas fa-tractor"></i> LCDA
+                </li>
+            </ul>
+        </div>
+        
+        <div class="sidebar-section">
+            <div class="sidebar-title"><i class="fas fa-signal"></i> By Status</div>
+            <ul class="sidebar-list">
+                <li class="sidebar-item active" data-filter="status" data-value="all">
+                    <i class="fas fa-circle status-online"></i> All Status
+                </li>
+                <li class="sidebar-item" data-filter="status" data-value="online">
+                    <i class="fas fa-circle status-online"></i> Online
+                </li>
+                <li class="sidebar-item" data-filter="status" data-value="offline">
+                    <i class="fas fa-circle status-offline"></i> Offline
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Main Content Area with Map and Charts -->
+    <div class="main-content">
+        <!-- Map Section -->
+        <div class="map-container">
+            <div class="map-header">
+                <span>Sarawak Agricultural IoT Locations</span>
+                <div class="map-controls">
+                    <button><i class="fas fa-download"></i> Export</button>
+                </div>
+            </div>
+
+            <div class="map-area">
+                <!-- Using local map image file -->
+                <img src="sarawak-map3.png" alt="Sarawak Map" class="map-image">
+
+                <!-- Specific locations from the data table -->
+                <div class="map-pin santubong farming sdec" data-location="santubong" data-category="farming" data-agency="sdec" data-status="online">
+                    <div class="pin-icon">
+                        <i class="fas fa-map-pin"></i>
+                        <div class="pin-label">Santubong</div>
+                    </div>
+                </div>
+                <div class="map-pin rampangi farming doa" data-location="rampangi" data-category="farming" data-agency="doa" data-status="online">
+                    <div class="pin-icon">
+                        <i class="fas fa-map-pin"></i>
+                        <div class="pin-label">Rampangi</div>
+                    </div>
+                </div>
+                <div class="map-pin semenggok-1 farming doa" data-location="semenggok-1" data-category="farming" data-agency="doa" data-status="online">
+                    <div class="pin-icon">
+                        <i class="fas fa-map-pin"></i>
+                        <div class="pin-label">Semenggok ARC</div>
+                    </div>
+                </div>
+                <div class="map-pin semenggok-2 farming doa" data-location="semenggok-2" data-category="farming" data-agency="doa" data-status="online">
+                    <div class="pin-icon">
+                        <i class="fas fa-map-pin"></i>
+                        <div class="pin-label">Semenggok IPS</div>
+                    </div>
+                </div>
+                <div class="map-pin oya farming doa" data-location="oya" data-category="farming" data-agency="doa" data-status="online">
+                    <div class="pin-icon">
+                        <i class="fas fa-map-pin"></i>
+                        <div class="pin-label">Oya</div>
+                    </div>
+                </div>
+                <div class="map-pin sg-baji farming mficord" data-location="sg-baji" data-category="farming" data-agency="mficord" data-status="offline">
+                    <div class="pin-icon">
+                        <i class="fas fa-map-pin"></i>
+                        <div class="pin-label">Sg. Baji</div>
+                    </div>
+                </div>
+                <div class="map-pin kabuloh farming doa" data-location="kabuloh" data-category="farming" data-agency="doa" data-status="online">
+                    <div class="pin-icon">
+                        <i class="fas fa-map-pin"></i>
+                        <div class="pin-label">Kabuloh</div>
+                    </div>
+                </div>
+                <div class="map-pin lubok-antusg aquaculture recoda" data-location="lubok-antusg" data-category="aquaculture" data-agency="recoda" data-status="offline">
+                    <div class="pin-icon">
+                        <i class="fas fa-map-pin"></i>
+                        <div class="pin-label">Lubok Antu</div>
+                    </div>
+                </div>
+                <div class="map-pin cattle-farm livestock dvss" data-location="cattle-farm" data-category="livestock" data-agency="dvss" data-status="offline">
+                    <div class="pin-icon">
+                        <i class="fas fa-map-pin"></i>
+                        <div class="pin-label">Cattle Farm</div>
+                    </div>
+                </div>
+                <div class="map-pin sg-sebiew aquaculture doa" data-location="sg-sebiew" data-category="aquaculture" data-agency="doa" data-status="offline">
+                    <div class="pin-icon">
+                        <i class="fas fa-map-pin"></i>
+                        <div class="pin-label">Sg. Sebiew</div>
+                    </div>
+                </div>
+                
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color farming-color"></div>
+                        <span>Farming</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color livestock-color"></div>
+                        <span>Livestock</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color aquaculture-color"></div>
+                        <span>Aquaculture</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section - Separate Container -->
+        <div class="charts-container">
+            <div class="charts-header">
+                <i class="fas fa-chart-pie"></i>
+                System Analytics & Monitoring
+            </div>
+            <div class="charts-section">
+                <div class="chart-panel">
+                    <div class="chart-title">System Status Distribution</div>
+                    <div class="chart-container">
+                        <canvas id="statusPieChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-panel">
+                    <div class="chart-title">Category Overview</div>
+                    <div class="chart-container">
+                        <canvas id="categoryBarChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Details Panel -->
+    <div class="details-panel">
+        <div class="panel">
+            <div class="panel-title"><i class="fas fa-info-circle"></i> Location Details</div>
+            <div id="location-details">Select a location on the map to view data.</div>
+        </div>
+        
+        <div class="panel">
+            <div class="panel-title"><i class="fas fa-chart-bar"></i> IoT System Status</div>
+            <div id="iot-status">
+                <p>Select a location to view IoT system status</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer>
+    Sarawak Digital Economy Corporation (SDEC) © 2025 — Centralized IoT Monitoring System
+</footer>
+
+<script>
+// Location data based on the table
+const locationData = {
+    "santubong": {
+        description: "Precision Discipline Farming",
+        category: "farming",
+        agency: "SDEC",
+        division: "Kuching",
+        specificLocation: "Santubong",
+        online: 6,
+        offline: 0,
+        total: 6,
+        status: "online",
+        projects: ["Precision Farming", "Smart Irrigation"],
+        iotParams: {
+            "Soil Moisture": "65%",
+            "Temperature": "28°C",
+            "Humidity": "75%",
+            "Rainfall": "12mm"
+        }
+    },
+    "rampangi": {
+        description: "Smart Farming TKPM Rampangi",
+        category: "farming",
+        agency: "DoA",
+        division: "Kuching",
+        specificLocation: "Rampangi",
+        online: 29,
+        offline: 1,
+        total: 30,
+        status: "online",
+        projects: ["Crop Monitoring", "Yield Optimization"],
+        iotParams: {
+            "Soil Moisture": "58%",
+            "Temperature": "30°C",
+            "Humidity": "80%",
+            "Rainfall": "8mm"
+        }
+    },
+    "semenggok-1": {
+        description: "Smart Farming ARC Semenggok",
+        category: "farming",
+        agency: "DoA",
+        division: "Kuching",
+        specificLocation: "Semenggok",
+        online: 3,
+        offline: 0,
+        total: 3,
+        status: "online",
+        projects: ["Agricultural Research", "Crop Testing"],
+        iotParams: {
+            "Soil Moisture": "62%",
+            "Temperature": "27°C",
+            "Humidity": "78%",
+            "Rainfall": "10mm"
+        }
+    },
+    "semenggok-2": {
+        description: "Smart Farming IPS Semenggok",
+        category: "farming",
+        agency: "DoA",
+        division: "Kuching",
+        specificLocation: "Semenggok",
+        online: 3,
+        offline: 0,
+        total: 3,
+        status: "online",
+        projects: ["Integrated Pest System", "Crop Protection"],
+        iotParams: {
+            "Soil Moisture": "60%",
+            "Temperature": "29°C",
+            "Humidity": "76%",
+            "Pest Activity": "Low"
+        }
+    },
+    "oya": {
+        description: "Smart Farming ATC Oya",
+        category: "farming",
+        agency: "DoA",
+        division: "Sibu",
+        specificLocation: "Oya",
+        online: 3,
+        offline: 0,
+        total: 3,
+        status: "online",
+        projects: ["Agricultural Training", "Crop Demonstration"],
+        iotParams: {
+            "Soil Moisture": "55%",
+            "Temperature": "31°C",
+            "Humidity": "82%",
+            "Rainfall": "15mm"
+        }
+    },
+    "sg-baji": {
+        description: "IoT Agropark Sg. Baji",
+        category: "farming",
+        agency: "MFICORD & LCDA",
+        division: "Sarikei",
+        specificLocation: "Sg. Baji",
+        online: 0,
+        offline: 60,
+        total: 60,
+        status: "offline",
+        projects: ["Agropark Development", "Community Farming"],
+        iotParams: {
+            "Soil Moisture": "N/A",
+            "Temperature": "N/A",
+            "Humidity": "N/A",
+            "System Status": "Offline"
+        }
+    },
+    "kabuloh": {
+        description: "Smart Farming ARC Kabuloh",
+        category: "farming",
+        agency: "DoA",
+        division: "Miri",
+        specificLocation: "Kabuloh",
+        online: 9,
+        offline: 0,
+        total: 9,
+        status: "online",
+        projects: ["Northern Region Farming", "Crop Research"],
+        iotParams: {
+            "Soil Moisture": "63%",
+            "Temperature": "26°C",
+            "Humidity": "74%",
+            "Rainfall": "18mm"
+        }
+    },
+    "lubok-antusg": {
+        description: "Batang Ai Aquaculture System Sg. Sebiew",
+        category: "aquaculture",
+        agency: "RECODA",
+        division: "Sri Aman",
+        specificLocation: "Lubok Antu",
+        online: 0,
+        offline: 5,
+        total: 5,
+        status: "offline",
+        projects: ["Aquaculture Development", "Fish Farming"],
+        iotParams: {
+            "Water Temperature": "N/A",
+            "pH Level": "N/A",
+            "Oxygen Level": "N/A",
+            "System Status": "Offline"
+        }
+    },
+    "sg-sebiew": {
+        description: "Aquaculture System Sg. Sebiew",
+        category: "aquaculture",
+        agency: "DoA",
+        division: "Bintulu",
+        specificLocation: "Sg Sebiew",
+        online: 0,
+        offline: 20,
+        total: 20,
+        status: "offline",
+        projects: ["Coastal Aquaculture", "Marine Farming"],
+        iotParams: {
+            "Water Temperature": "N/A",
+            "pH Level": "N/A",
+            "Oxygen Level": "N/A",
+            "System Status": "Offline"
+        }
+    },
+    "cattle-farm": {
+        description: "Cattle Farm",
+        category: "livestock",
+        agency: "DVSS",
+        division: "Sri Aman",
+        specificLocation: "Not specified",
+        online: 0,
+        offline: 10,
+        total: 10,
+        status: "offline",
+        projects: ["Livestock Management", "Animal Health"],
+        iotParams: {
+            "Temperature": "N/A",
+            "Humidity": "N/A",
+            "Feed Level": "N/A",
+            "System Status": "Offline"
+        }
+    }
+};
+
+// Current filters
+let currentFilters = {
+    category: "all",
+    agency: "all",
+    status: "all"
+};
+
+// Chart instances
+let statusPieChart = null;
+let categoryBarChart = null;
+
+// Initialize charts
+function initializeCharts() {
+    // Calculate totals for charts
+    const totals = calculateTotals();
+    
+    // Create Status Pie Chart
+    const statusCtx = document.getElementById('statusPieChart').getContext('2d');
+    statusPieChart = new Chart(statusCtx, {
+        type: 'pie',
+        data: {
+            labels: ['Online', 'Offline'],
+            datasets: [{
+                data: [totals.online, totals.offline],
+                backgroundColor: ['#4caf50', '#f44336'],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        boxWidth: 12,
+                        font: {
+                            size: 10
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.raw || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = Math.round((value / total) * 100);
+                            return `${label}: ${value} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Create Category Bar Chart
+    const categoryCtx = document.getElementById('categoryBarChart').getContext('2d');
+    categoryBarChart = new Chart(categoryCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Farming', 'Livestock', 'Aquaculture'],
+            datasets: [{
+                label: 'IoT Systems',
+                data: [totals.farming, totals.livestock, totals.aquaculture],
+                backgroundColor: ['#2e7d32', '#9c27b0', '#1565c0'],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        font: {
+                            size: 9
+                        }
+                    }
+                },
+                x: {
+                    ticks: {
+                        font: {
+                            size: 9
+                        }
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+}
+
+// Calculate totals for charts
+function calculateTotals() {
+    let online = 0;
+    let offline = 0;
+    let farming = 0;
+    let livestock = 0;
+    let aquaculture = 0;
+
+    Object.values(locationData).forEach(location => {
+        online += location.online;
+        offline += location.offline;
+        
+        switch(location.category) {
+            case 'farming':
+                farming += location.total;
+                break;
+            case 'livestock':
+                livestock += location.total;
+                break;
+            case 'aquaculture':
+                aquaculture += location.total;
+                break;
+        }
+    });
+
+    return { online, offline, farming, livestock, aquaculture };
+}
+
+// Update charts based on current filters
+function updateCharts() {
+    const totals = calculateTotals();
+    
+    if (statusPieChart) {
+        statusPieChart.data.datasets[0].data = [totals.online, totals.offline];
+        statusPieChart.update();
+    }
+    
+    if (categoryBarChart) {
+        categoryBarChart.data.datasets[0].data = [totals.farming, totals.livestock, totals.aquaculture];
+        categoryBarChart.update();
+    }
+}
+
+// Update pins based on current filters
+function updatePins() {
+    document.querySelectorAll(".map-pin").forEach(pin => {
+        const pinCategory = pin.dataset.category;
+        const pinAgency = pin.dataset.agency;
+        const pinStatus = pin.dataset.status;
+        
+        const categoryMatch = currentFilters.category === "all" || currentFilters.category === pinCategory;
+        const agencyMatch = currentFilters.agency === "all" || currentFilters.agency === pinAgency;
+        const statusMatch = currentFilters.status === "all" || currentFilters.status === pinStatus;
+        
+        if (categoryMatch && agencyMatch && statusMatch) {
+            pin.style.display = "block";
+        } else {
+            pin.style.display = "none";
+        }
+    });
+    
+    // Update charts when filters change
+    updateCharts();
+}
+
+// Initialize with default filters and charts
+updatePins();
+initializeCharts();
+
+// Filter selection
+document.querySelectorAll(".sidebar-item[data-filter]").forEach(item => {
+    item.addEventListener("click", () => {
+        const filterType = item.dataset.filter;
+        const filterValue = item.dataset.value;
+        
+        // Update active state
+        document.querySelectorAll(`.sidebar-item[data-filter="${filterType}"]`).forEach(i => {
+            i.classList.remove("active");
+        });
+        item.classList.add("active");
+        
+        // Update current filters
+        currentFilters[filterType] = filterValue;
+        
+        // Update pins and charts
+        updatePins();
+    });
+});
+
+// Location selection
+document.querySelectorAll(".map-pin").forEach(pin => {
+    pin.addEventListener("click", () => {
+        const location = pin.dataset.location;
+        const data = locationData[location];
+        
+        // Update location details
+        const statusClass = data.status === "online" ? "status-online" : "status-offline";
+        const details = `
+            <strong>${data.description}</strong>
+            <p><i class="fas fa-tag"></i> Category: ${data.category.charAt(0).toUpperCase() + data.category.slice(1)}</p>
+            <p><i class="fas fa-building"></i> Agency: ${data.agency}</p>
+            <p><i class="fas fa-map-marker-alt"></i> Division: ${data.division}</p>
+            <p><i class="fas fa-location-dot"></i> Location: ${data.specificLocation}</p>
+            <p><i class="fas fa-project-diagram"></i> Projects: ${data.projects.join(", ")}</p>
+        `;
+        document.getElementById("location-details").innerHTML = details;
+        
+        // Update IoT status
+        const statusHTML = `
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value" style="color: #4caf50;">${data.online}</div>
+                    <div class="stat-label">Online</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" style="color: #f44336;">${data.offline}</div>
+                    <div class="stat-label">Offline</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${data.total}</div>
+                    <div class="stat-label">Total</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value ${statusClass}">${data.status.toUpperCase()}</div>
+                    <div class="stat-label">Status</div>
+                </div>
+            </div>
+            <div class="iot-params" style="margin-top: 0.8rem;">
+                ${Object.entries(data.iotParams).map(([param, value]) => `
+                    <div class="param-item">
+                        <div>${param}</div>
+                        <div class="param-value">${value}</div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        document.getElementById("iot-status").innerHTML = statusHTML;
+        
+        // Highlight the selected location
+        document.querySelectorAll(".map-pin").forEach(p => {
+            p.classList.remove("selected");
+        });
+        pin.classList.add("selected");
+    });
+});
+</script>
+
+</body>
+</html>
